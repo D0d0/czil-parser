@@ -1,41 +1,36 @@
-var XLSX = require('xlsx');
-var util = require('util');
-var fs = require('fs');
+let XLSX = require('xlsx');
+let util = require('util');
+let fs = require('fs');
 
-var workbook = XLSX.readFile('CZIL.xls');
+let workbook = XLSX.readFile('CZIL.xls');
+let sheetName = workbook['SheetNames'][0];
+let sheet = workbook['Sheets'][sheetName];
 
-var sheetName = workbook['SheetNames'][0];
-
-//console.log('vInfo', util.inspect(workbook['Sheets'][sheet], false, null, true /* enable colors */));
-
-
-var gliders = [];
-var sheet = workbook['Sheets'][sheetName];
+let gliders = [];
 for (var key in sheet) {
     if (sheet.hasOwnProperty(key) && key.toLowerCase()[0] === 'a') {
-        // console.log(util.inspect(sheet[key].v, false, null, true /* enable colors */));
-        // sheet[key].v.split(',').map(x => x.trim())
-
         let row = sheet[key].v
             .split(',')
-            .filter(x => !x.includes('odstranit'))
-            .map(x => x.trim())
-            .map(x => x.replace(/  +/g, ' '));
-        gliders.push(...row);
+            .filter(_ => !_.includes('odstranit'))
+            .map(_ => _.trim())
+            .map(_ => _.replace(/  +/g, ' '))
+            .map(_ => _.replace(/"/g, '""'));
+
+        gliders.push(...row.map(x => ({
+            value: x,
+            key: key.slice(1)
+        })));
     }
 }
-
 
 // remove headers from file
 gliders = gliders.slice(2);
 
-console.log(util.inspect(gliders, false, null, true /* enable colors */));
-
-
-var stream = fs.createWriteStream("my_file.txt");
-stream.once('open', function(fd) {
-    for (var i = 0; i < gliders.length; i++){
-        stream.write(`${gliders[i]}\n`);
+let fileStream = fs.createWriteStream('list.csv');
+fileStream.once('open', function (fd) {
+    fileStream.write(`Glider,key\n`);
+    for (let i = 0; i < gliders.length; i++) {
+        fileStream.write(`"${gliders[i].value}",${gliders[i].key}\n`);
     }
-    stream.end();
+    fileStream.end();
 });
